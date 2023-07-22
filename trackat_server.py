@@ -58,6 +58,68 @@ def save_location(info):
     '''
 
     database.add_location(info["id"],info["lat"],info["long"], datetime.datetime.now())
+
+@app.route('/geofences', methods=['GET', 'POST'])
+def geofences():
+    '''
+    Get the list of all geofences or create a new geofence
+    '''
+
+    if request.method == 'POST':
+        data = request.get_json()
+        name = data.get('name')
+        points = data.get('points')
+        profile_id = data.get('profile_id')
+
+        if not name or not points or not profile_id:
+            return jsonify({'message': 'Invalid input data'}), 400
+
+        # Convert points to a JSON string before saving to the database
+        points_json = json.dumps(points)
+
+        geofence = Geofence(name=name, points=points_json, profile_id=profile_id)
+        database.session.add(geofence)
+        database.session.commit()
+
+        return jsonify({'message': 'Geofence created successfully'}), 201
+
+    elif request.method == 'GET':
+        geofences = database.session.query(Geofence).all()
+        geofences_response = []
+
+        for geofence in geofences:
+            # Convert the points JSON string back to a list
+            points = json.loads(geofence.points)
+            geofences_response.append({
+                'id': geofence.geofence_id,
+                'name': geofence.name,
+                'points': points,
+                'profile_id': geofence.profile_id
+            })
+
+        return jsonify(geofences_response)
+
+@app.route('/geofences/<int:geofence_id>', methods=['GET'])
+def get_geofence(geofence_id):
+    '''
+    Get a specific geofence by its ID
+    '''
+
+    geofence = database.session.query(Geofence).filter_by(geofence_id=geofence_id).first()
+
+    if not geofence:
+        return jsonify({'message': 'Geofence not found'}), 404
+
+    # Convert the points JSON string back to a list
+    points = json.loads(geofence.points)
+    geofence_response = {
+        'id': geofence.geofence_id,
+        'name': geofence.name,
+        'points': points,
+        'profile_id': geofence.profile_id
+    }
+
+    return jsonify(geofence_response)
     
 
 if __name__ == "__main__":

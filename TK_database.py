@@ -62,6 +62,22 @@ base.metadata.create_all(bind=engine)
 Session = sessionmaker(bind=engine)
 session = Session()
 
+class Geofence(base):
+    __tablename__ = "geofences"
+
+    geofence_id = Column("geofence_id", Integer, primary_key=True, autoincrement=True)
+    name = Column("name", String)
+    points = Column("points", String)  # Storing geofence points as JSON string
+    profile_id = Column(Integer, ForeignKey("profiles.profile_id"))
+
+    def __init__(self, name, points, profile_id):
+        self.name = name
+        self.points = points
+        self.profile_id = profile_id
+
+    def __repr__(self):
+        return f"({self.geofence_id}) {self.name} [{self.profile_id}]"
+
 
 def get_devices(profile_id): 
     """

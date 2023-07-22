@@ -3,9 +3,12 @@ package com.bacar.trackat_android;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import org.json.JSONException;
@@ -23,9 +26,17 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends AppCompatActivity {
 
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+
+    private GoogleMap googleMap;
     private Handler handler;
     private TextView locationsTextView;
     private String locationsString = "";
@@ -35,6 +46,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
+        mapFragment.getMapAsync(this);
+        Button goToGeofencingButton = findViewById(R.id.go_to_geofencing_button);
+        goToGeofencingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Start the GeofencingActivity
+                Intent intent = new Intent(MainActivity.this, GeofencingActivity.class);
+                startActivity(intent);
+            }
+        });
+
+
         handler = new Handler(Looper.getMainLooper());
         handler.post(periodicRequest);
 
@@ -42,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
         locationsTextView = findViewById(R.id.location);
 
 
+
+    }
+    public void onMapReady(GoogleMap googleMap) {
+        this.googleMap = googleMap;
     }
 
     private Runnable periodicRequest = new Runnable() {
@@ -97,7 +127,17 @@ public class MainActivity extends AppCompatActivity {
                                     +String.format(Locale.ENGLISH, "%02d", date.getMonth()+1)+"/"
                                     +(date.getYear()+1900)
                                     +"\n";
+                            runOnUiThread(() -> {
+                                LatLng latLng = new LatLng(latitude, longitude);
+                                googleMap.addMarker(new MarkerOptions().position(latLng));
+                            });
 
+
+                        }
+                        if (googleMap != null && locations.length() > 0) {
+                            LatLng firstLocation = new LatLng(locations.getJSONObject("1").getDouble("latitude"),
+                                    locations.getJSONObject("1").getDouble("longitude"));
+                            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firstLocation, 15));
                         }
 
                         runOnUiThread(() -> {
